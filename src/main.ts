@@ -1,6 +1,10 @@
 import { Plugin } from 'obsidian';
 
-import { Cache } from './Cache';
+import { TaskGroup, TaskGroups } from 'Query/TaskGroup';
+import type { Moment } from 'moment/moment';
+import { Status } from 'Status';
+import { Query } from './Query/Query';
+import { Cache, State } from './Cache';
 import { Commands } from './Commands';
 import { TasksEvents } from './TasksEvents';
 import { initializeFile } from './File';
@@ -13,6 +17,33 @@ import { StatusRegistry } from './StatusRegistry';
 import { EditorSuggestor } from './Suggestor/EditorSuggestorPopup';
 import { StatusSettings } from './Config/StatusSettings';
 import type { Task } from './Task';
+import { PriorityUtils } from './Task';
+
+export class TaskExternal {
+    public readonly isDone: Boolean;
+    public readonly priority: number; // 1 is the highest priority, any larger number is a lower priority.
+
+    public readonly tags: string[]; // a list of ASCII tags, distilled from the description.
+    public readonly originalMarkdown: string; // the original markdown task.
+
+    public readonly startDate: Moment | null;
+    public readonly scheduledDate: Moment | null;
+    public readonly dueDate: Moment | null;
+    public readonly doneDate: Moment | null;
+
+    // TODO:
+    // public readonly recurrence: Recurrence | null;
+    constructor(task: Task) {
+        this.isDone = task.status == Status.DONE; // TODO: enable more statuses.
+        this.priority = PriorityUtils.toNumber(task.priority);
+        this.tags = task.tags;
+        this.originalMarkdown = task.originalMarkdown;
+        this.startDate = task.startDate;
+        this.scheduledDate = task.scheduledDate;
+        this.dueDate = task.dueDate;
+        this.doneDate = task.doneDate;
+    }
+}
 
 export default class TasksPlugin extends Plugin {
     private cache: Cache | undefined;
@@ -70,4 +101,51 @@ export default class TasksPlugin extends Plugin {
     public getTasks(): Task[] | undefined {
         return this.cache?.getTasks();
     }
+
+    public async oneHotResolveQueryToTasks(query: string): TaskExternal[] | undefined {
+        return new Promise((resolve, reject) => {
+            this.app.workspace.trigger(
+                'obsidian-tasks-plugin:request-cache-update',
+                ({ tasks, state }: { tasks: Task[]; state: State }) => {
+                    let tasksExternal: TaskExternal[] = [];
+                    const myQuery: Query = new Query({ source: query });
+                    if (myQuery.error !== undefined) {
+                        reject(myQuery.error);
+                    }
+                    if (state === State.Warm) {
+                        const taskGroups: TaskGroups = myQuery.applyQueryToTasks(tasks);
+                        // TODO: Currently this is a hack. we decompose the groups into a flat array for return.
+                        // Should somehow return group information back as well.
+                        taskGroups.groups.forEach((group: TaskGroup) => {
+                            tasksExternal = tasksExternal.concat(
+                                group.tasks.map((task: Task) => new TaskExternal(task)),
+                            );
+                        });
+                    } else {
+                        reject('Cache is not warm, but expected to be so.');
+                    }
+                    resolve(tasksExternal);
+                },
+            );
+        });
+    }
 }
+
+// NOTE: Let's figure out once and for all what the difference between let and var is.
+
+// let = block scope.
+// var is globally to the function regardless of block scope.
+// var is also hoisted.
+// let can only be accessed after it is declared.
+// let is a declaration, var is a statement.
+
+// javascript hositing is when the decl gets hoisted to the top of the scope (function scope).
+function varTest() {
+    var x = 1;
+    {
+        var x = 2; // same variable!
+        console.log(x); // 2
+    }
+    console.log(x); // 2
+}
+// ^ silly example.

@@ -26,6 +26,21 @@ export enum Priority {
     Low = '4',
 }
 
+export class PriorityUtils {
+    static toNumber(priority: Priority): number {
+        switch (priority) {
+            case Priority.High:
+                return 1;
+            case Priority.Medium:
+                return 2;
+            case Priority.None:
+                return 3;
+            case Priority.Low:
+                return 4;
+        }
+    }
+}
+
 export const prioritySymbols = {
     High: '⏫',
     Medium: '🔼',
