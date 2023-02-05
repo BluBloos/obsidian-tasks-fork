@@ -11,6 +11,7 @@
         startDateSymbol,
         scheduledDateSymbol,
         dueDateSymbol,
+        estimatedTimeToCompleteSymbol
     } from '../Task';
     import { doAutocomplete } from '../DateAbbreviations';
 
@@ -30,6 +31,7 @@
         dueDate: string;
         doneDate: string;
         forwardOnly: boolean;
+        estimatedTimeToComplete: string;
     } = {
         description: '',
         status: Status.TODO,
@@ -39,7 +41,8 @@
         scheduledDate: '',
         dueDate: '',
         doneDate: '',
-        forwardOnly: true
+        forwardOnly: true,
+        estimatedTimeToComplete: ''
     };
 
     let parsedStartDate: string = '';
@@ -47,9 +50,11 @@
     let parsedDueDate: string = '';
     let parsedRecurrence: string = '';
     let parsedDone: string = '';
+    let parsedEstimatedTimeToComplete: string = '';
     let addGlobalFilterOnSave: boolean = false;
     let withAccessKeys: boolean = true;
 
+    let timeToCompletePlaceholder = 'e.g. 10:30 for 10h 30m';
     // 'weekend' abbreviation ommitted due to lack of space.
     let datePlaceholder =
         "Try 'Monday' or 'tomorrow', or [td|tm|yd|tw|nw|we] then space.";
@@ -122,6 +127,12 @@
         );
     }
 
+    // TODO: Add autocompletion.
+    $: {
+        parsedEstimatedTimeToComplete = Task.estimatedTimeToCompleteToString(
+            Task.estimatedTimeToCompleteFromString(editableTask.estimatedTimeToComplete));
+    }
+
     $: {
         if (!editableTask.recurrenceRule) {
             parsedRecurrence = '<i>not recurring</>';
@@ -175,6 +186,8 @@
             dueDate: task.dueDate ? task.dueDate.format('YYYY-MM-DD') : '',
             doneDate: task.doneDate ? task.doneDate.format('YYYY-MM-DD') : '',
             forwardOnly: true,
+            estimatedTimeToComplete: task.estimatedTimeToComplete ?
+                Task.estimatedTimeToCompleteToString(task.estimatedTimeToComplete) : ''
         };
         setTimeout(() => {
             descriptionInput.focus();
@@ -232,6 +245,9 @@
             dueDate = window.moment(parsedDueDate);
         }
 
+        let estimatedTimeToComplete : number | null | undefined =
+            Task.estimatedTimeToCompleteFromString(editableTask.estimatedTimeToComplete);
+
         let recurrence: Recurrence | null = null;
         if (editableTask.recurrenceRule) {
             recurrence = Recurrence.fromText({
@@ -257,7 +273,7 @@
                 parsedPriority = Priority.None;
         }
 
-        const updatedTask = new Task({
+        let updatedTask = new Task({
             ...task,
             description,
             status: editableTask.status,
@@ -272,6 +288,9 @@
                 ? window.moment(editableTask.doneDate, 'YYYY-MM-DD')
                 : null,
         });
+
+        // TODO: this is a hack but it works for now.
+        updatedTask.estimatedTimeToComplete = estimatedTimeToComplete;
 
         onSubmit([updatedTask]);
     };
@@ -368,6 +387,16 @@
             </div>
         </div>
         <div class="tasks-modal-section">
+            <code>{estimatedTimeToCompleteSymbol} {@html parsedEstimatedTimeToComplete}</code>
+            <label for="timeToComplete">Es<span class="accesskey">t</span>imated time to complete</label>
+            <!-- svelte-ignore a11y-accesskey -->
+            <input
+                bind:value={editableTask.estimatedTimeToComplete}
+                id="timeToComplete"
+                type="text"
+                placeholder={timeToCompletePlaceholder}
+                accesskey={accesskey("t")}
+            />
             <label for="status">Status </label>
             <select bind:value={editableTask.status} id="status-type" class="dropdown">
                 {#each statusOptions as status}

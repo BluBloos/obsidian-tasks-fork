@@ -53,6 +53,7 @@ export const startDateSymbol = '🛫';
 export const scheduledDateSymbol = '⏳';
 export const dueDateSymbol = '📅';
 export const doneDateSymbol = '✅';
+export const estimatedTimeToCompleteSymbol = '⏱';
 
 export class TaskRegularExpressions {
     public static readonly dateFormat = 'YYYY-MM-DD';
@@ -111,6 +112,12 @@ export class TaskRegularExpressions {
     public static readonly doneDateRegex = /✅ *(\d{4}-\d{2}-\d{2})$/u;
     public static readonly recurrenceRegex = /🔁 ?([a-zA-Z0-9, !]+)$/iu;
 
+    public static readonly estimatedTimeToCompleteRegexShortform = '\\d{1,2}:(?:[0-5]\\d|\\d)';
+    public static readonly estimatedTimeToCompleteRegex = new RegExp(
+        `${estimatedTimeToCompleteSymbol} *(${TaskRegularExpressions.estimatedTimeToCompleteRegexShortform})$`,
+        'u',
+    ); // HH:mm
+
     // Regex to match all hash tags, basically hash followed by anything but the characters in the negation.
     // To ensure URLs are not caught it is looking of beginning of string tag and any
     // tag that has a space in front of it. Any # that has a character in front
@@ -131,6 +138,35 @@ export class TaskRegularExpressions {
  * @class Task
  */
 export class Task {
+    // TODO: Maybe we cannot verify that this stuff is working at compile time.
+    // but we can verify this sort of thing with tests.
+    public static estimatedTimeToCompleteToString(estimatedTimeToComplete: number | null | undefined): string {
+        if (estimatedTimeToComplete === undefined) {
+            return 'no estimated time to complete';
+        }
+        if (estimatedTimeToComplete !== null) {
+            const hours = Math.floor(estimatedTimeToComplete / 60);
+            const minutes = estimatedTimeToComplete % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        }
+        return `expected ${TaskRegularExpressions.estimatedTimeToCompleteRegexShortform}`;
+    }
+    public static estimatedTimeToCompleteFromString(estimatedTimeToComplete: string): number | null | undefined {
+        if (estimatedTimeToComplete === '') {
+            return undefined;
+        }
+        const regex = new RegExp(`^(${TaskRegularExpressions.estimatedTimeToCompleteRegexShortform}$)`);
+        const estimatedTimeToCompleteMatch = estimatedTimeToComplete.match(regex);
+        if (estimatedTimeToCompleteMatch !== null) {
+            const times = estimatedTimeToCompleteMatch[0].split(':');
+            return parseInt(times[0]) * 60 + parseInt(times[1]);
+        }
+        return null;
+    }
+
+    // TODO: giving write access for now.
+    public estimatedTimeToComplete: number | null | undefined;
+
     public readonly status: Status;
     public readonly description: string;
     public readonly path: string;
@@ -166,6 +202,7 @@ export class Task {
     private _urgency: number | null = null;
 
     constructor({
+        estimatedTimeToComplete,
         status,
         description,
         path,
@@ -185,6 +222,7 @@ export class Task {
         originalMarkdown,
         scheduledDateIsInferred,
     }: {
+        estimatedTimeToComplete: number | null | undefined;
         status: Status;
         description: string;
         path: string;
@@ -227,6 +265,8 @@ export class Task {
         this.originalMarkdown = originalMarkdown;
 
         this.scheduledDateIsInferred = scheduledDateIsInferred;
+
+        this.estimatedTimeToComplete = estimatedTimeToComplete;
     }
 
     /**
@@ -300,6 +340,7 @@ export class Task {
         let scheduledDateIsInferred = false;
         let dueDate: Moment | null = null;
         let doneDate: Moment | null = null;
+        let estimatedTimeToComplete: number | null | undefined = undefined;
         let recurrenceRule: string = '';
         let recurrence: Recurrence | null = null;
         let tags: any = [];
@@ -328,6 +369,13 @@ export class Task {
                 }
 
                 description = description.replace(TaskRegularExpressions.priorityRegex, '').trim();
+                matched = true;
+            }
+
+            const estimatedTimeToCompleteMatch = description.match(TaskRegularExpressions.estimatedTimeToCompleteRegex);
+            if (estimatedTimeToCompleteMatch !== null) {
+                estimatedTimeToComplete = Task.estimatedTimeToCompleteFromString(estimatedTimeToCompleteMatch[1]);
+                description = description.replace(TaskRegularExpressions.estimatedTimeToCompleteRegex, '').trim();
                 matched = true;
             }
 
@@ -415,6 +463,7 @@ export class Task {
         }
 
         return new Task({
+            estimatedTimeToComplete,
             status,
             description,
             path,
@@ -505,6 +554,13 @@ export class Task {
                     : ` ${recurrenceSymbol} ${this.recurrence.toText()}`;
             case 'blockLink':
                 return this.blockLink ?? '';
+            case 'estimatedTimeToComplete':
+                if (!this.estimatedTimeToComplete) return '';
+                return layout.options.shortMode
+                    ? ' ' + estimatedTimeToCompleteSymbol
+                    : ` ${estimatedTimeToCompleteSymbol} ${Task.estimatedTimeToCompleteToString(
+                          this.estimatedTimeToComplete,
+                      )}`;
             default:
                 throw new Error(`Don't know how to render task component of type '${component}'`);
         }
@@ -676,6 +732,7 @@ export class Task {
             'sectionIndex',
             'precedingHeader',
             'priority',
+            'estimatedTimeToComplete',
             'blockLink',
             'scheduledDateIsInferred',
         ];

@@ -14,6 +14,7 @@ export class LayoutOptions {
     hideUrgency: boolean = true;
     shortMode: boolean = false;
     explainQuery: boolean = false;
+    hideEstimatedTimeToComplete: boolean = false;
 }
 
 export type TaskLayoutComponent =
@@ -24,6 +25,7 @@ export type TaskLayoutComponent =
     | 'scheduledDate'
     | 'dueDate'
     | 'doneDate'
+    | 'estimatedTimeToComplete'
     | 'blockLink';
 
 /**
@@ -40,6 +42,7 @@ export class TaskLayout {
         'scheduledDate',
         'dueDate',
         'doneDate',
+        'estimatedTimeToComplete',
         'blockLink',
     ];
     public layoutComponents: TaskLayoutComponent[];
@@ -85,6 +88,7 @@ export class TaskLayout {
         newComponents = removeIf(newComponents, layoutOptions.hideScheduledDate, 'scheduledDate');
         newComponents = removeIf(newComponents, layoutOptions.hideDueDate, 'dueDate');
         newComponents = removeIf(newComponents, layoutOptions.hideDoneDate, 'doneDate');
+        newComponents = removeIf(newComponents, layoutOptions.hideEstimatedTimeToComplete, 'estimatedTimeToComplete');
         return newComponents;
     }
 }

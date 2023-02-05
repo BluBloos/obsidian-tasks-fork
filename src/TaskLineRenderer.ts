@@ -211,6 +211,16 @@ function addTooltip({
             );
         }
 
+        if (task.estimatedTimeToComplete) {
+            // TODO: When rendering this setting would be better to render the HH:mm kind of deal.
+            const estimatedTimeToCompleteDiv = tooltip.createDiv();
+            estimatedTimeToCompleteDiv.setText(
+                `${taskModule.estimatedTimeToCompleteSymbol} ${taskModule.Task.estimatedTimeToCompleteToString(
+                    task.estimatedTimeToComplete,
+                )}`,
+            );
+        }
+
         const linkText = task.getLinkText({ isFilenameUnique });
         if (linkText) {
             const backlinkDiv = tooltip.createDiv();
