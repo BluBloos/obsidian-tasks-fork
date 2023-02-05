@@ -25,6 +25,7 @@ export class TaskExternal {
 
     public readonly tags: string[]; // a list of ASCII tags, distilled from the description.
     public readonly originalMarkdown: string; // the original markdown task.
+    public readonly description: string; // the description of the task.
 
     public readonly startDate: Moment | null;
     public readonly scheduledDate: Moment | null;
@@ -42,6 +43,7 @@ export class TaskExternal {
         this.scheduledDate = task.scheduledDate;
         this.dueDate = task.dueDate;
         this.doneDate = task.doneDate;
+        this.description = task.description;
     }
 }
 
