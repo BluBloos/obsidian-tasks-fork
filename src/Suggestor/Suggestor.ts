@@ -31,6 +31,8 @@ export function buildSuggestions(line: string, cursorPos: number, settings: Sett
     // Step 1: add date suggestions if relevant
     suggestions = suggestions.concat(addDatesSuggestions(line, cursorPos, settings));
 
+    suggestions = suggestions.concat(addEstimatedTimeSuggestions(line, cursorPos, settings));
+
     // Step 2: add recurrence suggestions if relevant
     suggestions = suggestions.concat(addRecurrenceSuggestions(line, cursorPos, settings));
 
@@ -108,6 +110,13 @@ function getPossibleComponentSuggestions(line: string, _settings: Settings): Sug
             displayText: `${task.scheduledDateSymbol} scheduled date`,
             appendText: `${task.scheduledDateSymbol} `,
         });
+    if (!line.includes(task.estimatedTimeToCompleteSymbol))
+    {
+        suggestions.push({
+            displayText: `${task.estimatedTimeToCompleteSymbol} estimated time to complete`,
+            appendText: `${task.estimatedTimeToCompleteSymbol} `,
+        });
+    }
     if (!hasPriority(line)) {
         suggestions.push({
             displayText: `${task.prioritySymbols.High} high priority`,
@@ -129,6 +138,66 @@ function getPossibleComponentSuggestions(line: string, _settings: Settings): Sug
         });
 
     return suggestions;
+}
+
+function addEstimatedTimeSuggestions(line: string, cursorPos: number, settings: Settings): SuggestInfo[] {
+    const genericSuggestions = [
+        '0:15',
+        '0:30',
+        '0:45',
+        '1:00',
+        '1:30',
+        '2:00',
+        '3:00',
+        '4:00',
+        '8:00',
+        '16:00',
+    ];
+
+    // TODO: ideally we want to make it so that if they type "(fifteen|15) minutes", we'll suggest "0:15".
+    // should be trivial. just like take "fifteen"->15.
+
+    // TODO: also, I played with things a little bit and it seems finicky. i.e. sometimes suggestions won't
+    // be occuring and I get the general ones.
+
+    const results: SuggestInfo[] = [];
+    const timeRegex = new RegExp(`([${task.estimatedTimeToCompleteSymbol}])\\s*([0-9:]*)`, 'ug');
+    const timeMatch = matchByPosition(line, timeRegex, cursorPos);
+    if (timeMatch && timeMatch.length >= 2)
+    {
+        const timePrefix = timeMatch[1]; // i.e. the estimated time symbol
+        const timeString = timeMatch[2];
+        if (timeString.length < settings.autoSuggestMinMatch) {
+            return [];
+        }
+        const minMatch = 1;
+        const maxGenericSuggestions = 5; // TODO: why?
+        let genericMatches = genericSuggestions
+            .filter(
+                (value) =>
+                    timeString.length >= minMatch &&
+                    value.toLowerCase().includes(timeString.toLowerCase()),
+            )
+            .slice(0, maxGenericSuggestions);
+        if (genericMatches.length === 0) {
+            // Do completely generic date suggestions
+            genericMatches = genericSuggestions.slice(0, maxGenericSuggestions);
+        }
+        // NOTE: timeMatch[0] is the entire original match from the .md file we are inserting into.
+        // what happens is there is a .replace method. it takes a range. if we do not specify an end on the range,
+        // it literally does an insert, preserving all that was after the begin pos.
+        // but if we provide a range, it is same as if we selectd then typed 'a'. all of the selection gets replaced with 'a'.
+        for (const match of genericMatches) {
+            results.push({
+                suggestionType: 'match',
+                displayText: `${match}`,
+                appendText: `${timePrefix} ${match} `,
+                insertAt: timeMatch.index,
+                insertSkip: timeMatch[0].length,
+            });
+        }
+    }
+    return results;
 }
 
 /*
