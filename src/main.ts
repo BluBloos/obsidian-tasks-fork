@@ -18,6 +18,7 @@ import { EditorSuggestor } from './Suggestor/EditorSuggestorPopup';
 import { StatusSettings } from './Config/StatusSettings';
 import type { Task } from './Task';
 import { PriorityUtils } from './Task';
+import type { RRule } from 'rrule';
 
 export class TaskExternal {
     public readonly isDone: Boolean;
@@ -33,6 +34,11 @@ export class TaskExternal {
     public readonly dueDate: Moment | null;
     public readonly doneDate: Moment | null;
 
+    public readonly recurrenceRrule: RRule | null;                  ///< RRule as per the lib.
+    public readonly recurrenceReferenceDate: Moment | null;  ///< The date after which the recurrence rule applies, may be
+                                                                         ///  null if the RRule itself has a ref date,
+                                                                         ///  ex) "every Monday".
+
     // TODO:
     // public readonly recurrence: Recurrence | null;
     constructor(task: Task) {
@@ -46,6 +52,8 @@ export class TaskExternal {
         this.doneDate = task.doneDate;
         this.description = task.description;
         this.estimatedTimeToComplete = task.estimatedTimeToComplete;
+        this.recurrenceRrule = (task.recurrence) ? task.recurrence.rrule : null;
+        this.recurrenceReferenceDate = (task.recurrence) ? task.recurrence.referenceDate : null;
     }
 }
 

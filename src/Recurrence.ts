@@ -3,7 +3,7 @@ import { RRule } from 'rrule';
 import { compareByDate } from './lib/DateTools';
 
 export class Recurrence {
-    private readonly rrule: RRule;
+    public readonly rrule: RRule;
     private readonly baseOnToday: boolean;
     private readonly startDate: Moment | null;
     private readonly scheduledDate: Moment | null;
@@ -22,7 +22,7 @@ export class Recurrence {
      * same relative distance to the due date as the original task. For example
      * "starts one week before it is due".
      */
-    private readonly referenceDate: Moment | null;
+    public readonly referenceDate: Moment | null;
 
     constructor({
         rrule,
