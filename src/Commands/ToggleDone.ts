@@ -3,7 +3,16 @@ import { StatusRegistry } from '../StatusRegistry';
 
 import { Task, TaskRegularExpressions } from '../Task';
 
-export const toggleDone = (checking: boolean, editor: Editor, view: View) => {
+/**
+ * Caller must ensure it is accessing Editor atomically for the duration of the call.
+ *
+ * @param checking  If true, checks if toggling a Task is considered a valid action given the context
+ *                  defined by params {@code editor} and {@code view}.
+ * @param editor    An Obsidian Editor instance.
+ * @param view      An Obsidian View instance.
+ * @returns         A boolean if checking, otherwise undefined.
+ */
+export const toggleDone = (checking: boolean, editor: Editor, view: View): boolean | undefined => {
     if (checking) {
         if (!(view instanceof MarkdownView)) {
             // If we are not in a markdown view, the command shouldn't be shown.
@@ -32,7 +41,7 @@ export const toggleDone = (checking: boolean, editor: Editor, view: View) => {
     const lineNumber = origCursorPos.line;
     const line = editor.getLine(lineNumber);
 
-    const toggledLine = toggleLine(line, path);
+    const toggledLine = toggleLine(line);
     editor.setLine(lineNumber, toggledLine);
 
     /* Cursor positions are 0-based for both "line" and "ch" offsets.
@@ -52,20 +61,32 @@ export const toggleDone = (checking: boolean, editor: Editor, view: View) => {
     });
 };
 
-export const toggleLine = (line: string, path: string) => {
+/**
+ * Converts the string {@code line}, as if it was a single line in a file,
+ * to as a Task, toggled, then rendered as a line again.
+ *
+ * @param line A line that may or may not represent a Task.
+ * @returns    The {@code line}, interpreted as a Task, toggled, and rendered to a line again.
+ */
+export const toggleLine = (line: string) => {
     let toggledLine = line;
 
     const task = Task.fromLine({
-        // Why are we using Task.fromLine instead of the Cache here?
         line,
-        path,
-        sectionStart: 0, // We don't need this to toggle it here in the editor.
-        sectionIndex: 0, // We don't need this to toggle it here in the editor.
-        precedingHeader: null, // We don't need this to toggle it here in the editor.
-        fallbackDate: null, // We don't need this to toggle it here in the editor.
+        // such params below are only required for concrete Tasks that exist somewhere.
+        // here, we merely use the Task class as a helper for its instance methods.
+        path: '',
+        sectionStart: 0,
+        sectionIndex: 0,
+        precedingHeader: null,
+        fallbackDate: null,
     });
     if (task !== null) {
-        toggledLine = toggleTask(task);
+        // recall that tasks such as recurring tasks may produce more than one task as output.
+        toggledLine = task
+            .toggle()
+            .map((task: Task) => task.toFileLineString())
+            .join('\n');
     } else {
         // If the task is null this means that we have one of:
         // 1. a regular checklist item
@@ -91,12 +112,6 @@ export const toggleLine = (line: string, path: string) => {
     }
 
     return toggledLine;
-};
-
-const toggleTask = (task: Task): string => {
-    // Toggling a recurring task will produce two Tasks
-    const toggledTasks = task.toggle();
-    return toggledTasks.map((task: Task) => task.toFileLineString()).join('\n');
 };
 
 /* Cases (another way):

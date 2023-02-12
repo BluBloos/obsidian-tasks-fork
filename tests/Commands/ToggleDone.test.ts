@@ -60,7 +60,7 @@ function testToggleLineForOutOfRangeCursorPositions(
     expected: string,
     expectedCursorOffset: number,
 ) {
-    const result = toggleLine(input, 'x.md');
+    const result = toggleLine(input);
     expect(result).toStrictEqual(expected);
     const actualCursorOffset = calculateCursorOffset(initialCursorOffset, input, result);
     expect(actualCursorOffset).toEqual(expectedCursorOffset);
@@ -179,10 +179,10 @@ describe('ToggleDone', () => {
             const line1 = '- [P] this is a task starting at Pro';
 
             // Assert
-            const line2 = toggleLine(line1, 'x.md');
+            const line2 = toggleLine(line1);
             expect(line2).toStrictEqual('- [C] this is a task starting at Pro');
 
-            const line3 = toggleLine(line2, 'x.md');
+            const line3 = toggleLine(line2);
             expect(line3).toStrictEqual('- [P] this is a task starting at Pro');
         });
 
@@ -192,10 +192,10 @@ describe('ToggleDone', () => {
             const line1 = '- [C] #task this is a task starting at Con';
 
             // Assert
-            const line2 = toggleLine(line1, 'x.md');
+            const line2 = toggleLine(line1);
             expect(line2).toStrictEqual('- [P] #task this is a task starting at Con');
 
-            const line3 = toggleLine(line2, 'x.md');
+            const line3 = toggleLine(line2);
             expect(line3).toStrictEqual('- [C] #task this is a task starting at Con');
         });
 
@@ -205,10 +205,10 @@ describe('ToggleDone', () => {
             const line1 = '- [P] this is a task starting at Pro, not matching the global filter';
 
             // Assert
-            const line2 = toggleLine(line1, 'x.md');
+            const line2 = toggleLine(line1);
             expect(line2).toStrictEqual('- [C] this is a task starting at Pro, not matching the global filter');
 
-            const line3 = toggleLine(line2, 'x.md');
+            const line3 = toggleLine(line2);
             expect(line3).toStrictEqual('- [P] this is a task starting at Pro, not matching the global filter');
         });
     });
