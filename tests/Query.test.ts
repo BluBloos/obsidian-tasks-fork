@@ -277,6 +277,7 @@ describe('Query', () => {
             // Arrange
             const tasks = [
                 new Task({
+                    estimatedTimeToComplete: null,
                     status: Status.TODO,
                     description: 'description',
                     path: 'Ab/C D',
@@ -297,6 +298,7 @@ describe('Query', () => {
                     scheduledDateIsInferred: false,
                 }),
                 new Task({
+                    estimatedTimeToComplete: null,
                     status: Status.TODO,
                     description: 'description',
                     path: 'FF/C D',

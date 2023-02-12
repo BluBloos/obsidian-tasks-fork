@@ -39,6 +39,7 @@ export const taskFromLine = ({ line, path }: { line: string; path: string }): Ta
         // Should never happen; everything in the regex is optional.
         console.error('Tasks: Cannot create task on line:', line);
         return new Task({
+            estimatedTimeToComplete: null,
             status: Status.TODO,
             description: '',
             path,
@@ -76,6 +77,7 @@ export const taskFromLine = ({ line, path }: { line: string; path: string }): Ta
     }
 
     return new Task({
+        estimatedTimeToComplete: null,
         status,
         description,
         path,

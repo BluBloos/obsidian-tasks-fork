@@ -110,8 +110,7 @@ function getPossibleComponentSuggestions(line: string, _settings: Settings): Sug
             displayText: `${task.scheduledDateSymbol} scheduled date`,
             appendText: `${task.scheduledDateSymbol} `,
         });
-    if (!line.includes(task.estimatedTimeToCompleteSymbol))
-    {
+    if (!line.includes(task.estimatedTimeToCompleteSymbol)) {
         suggestions.push({
             displayText: `${task.estimatedTimeToCompleteSymbol} estimated time to complete`,
             appendText: `${task.estimatedTimeToCompleteSymbol} `,
@@ -163,8 +162,7 @@ function addEstimatedTimeSuggestions(line: string, cursorPos: number, settings: 
     const results: SuggestInfo[] = [];
     const timeRegex = new RegExp(`([${task.estimatedTimeToCompleteSymbol}])\\s*([0-9:]*)`, 'ug');
     const timeMatch = matchByPosition(line, timeRegex, cursorPos);
-    if (timeMatch && timeMatch.length >= 2)
-    {
+    if (timeMatch && timeMatch.length >= 2) {
         const timePrefix = timeMatch[1]; // i.e. the estimated time symbol
         const timeString = timeMatch[2];
         if (timeString.length < settings.autoSuggestMinMatch) {

@@ -3,6 +3,7 @@ import { Plugin } from 'obsidian';
 import { TaskGroup, TaskGroups } from 'Query/TaskGroup';
 import type { Moment } from 'moment/moment';
 import { Status } from 'Status';
+import type { RRule } from 'rrule';
 import { Query } from './Query/Query';
 import { Cache, State } from './Cache';
 import { Commands } from './Commands';
@@ -18,7 +19,6 @@ import { EditorSuggestor } from './Suggestor/EditorSuggestorPopup';
 import { StatusSettings } from './Config/StatusSettings';
 import type { Task } from './Task';
 import { PriorityUtils } from './Task';
-import type { RRule } from 'rrule';
 
 export class TaskExternal {
     public readonly isDone: Boolean;
@@ -27,17 +27,19 @@ export class TaskExternal {
     public readonly tags: string[]; // a list of ASCII tags, distilled from the description.
     public readonly originalMarkdown: string; // the original markdown task.
     public readonly description: string; // the description of the task.
-    public readonly estimatedTimeToComplete : number | null | undefined; // the estimated time to complete the task in minutes
+    public readonly estimatedTimeToComplete: number | null | undefined; // the estimated time to complete the task in minutes
 
     public readonly startDate: Moment | null;
     public readonly scheduledDate: Moment | null;
     public readonly dueDate: Moment | null;
     public readonly doneDate: Moment | null;
 
-    public readonly recurrenceRrule: RRule | null;                  ///< RRule as per the lib.
-    public readonly recurrenceReferenceDate: Moment | null;  ///< The date after which the recurrence rule applies, may be
-                                                                         ///  null if the RRule itself has a ref date,
-                                                                         ///  ex) "every Monday".
+    public readonly recurrenceRrule: RRule | null; ///< RRule as per the lib.
+    
+    /// The date after which the recurrence rule applies, may be
+    ///  null if the RRule itself has a ref date,
+    ///  ex) "every Monday".
+    public readonly recurrenceReferenceDate: Moment | null;
 
     // TODO:
     // public readonly recurrence: Recurrence | null;
@@ -52,8 +54,8 @@ export class TaskExternal {
         this.doneDate = task.doneDate;
         this.description = task.description;
         this.estimatedTimeToComplete = task.estimatedTimeToComplete;
-        this.recurrenceRrule = (task.recurrence) ? task.recurrence.rrule : null;
-        this.recurrenceReferenceDate = (task.recurrence) ? task.recurrence.referenceDate : null;
+        this.recurrenceRrule = task.recurrence ? task.recurrence.rrule : null;
+        this.recurrenceReferenceDate = task.recurrence ? task.recurrence.referenceDate : null;
     }
 }
 

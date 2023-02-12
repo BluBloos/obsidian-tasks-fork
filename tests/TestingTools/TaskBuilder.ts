@@ -19,6 +19,9 @@ import { StatusConfiguration, StatusType } from '../../src/StatusConfiguration';
  *            Create a new TaskBuilder object to start from a clean state,
  */
 export class TaskBuilder {
+
+    private _estimatedTimeToComplete: number | null | undefined = null;
+
     private _status: Status = Status.TODO;
     private _description: string = 'my description';
     private _path: string = '';
@@ -60,6 +63,7 @@ export class TaskBuilder {
             description += ' ' + this._tags.join(' ');
         }
         return new Task({
+            estimatedTimeToComplete: this._estimatedTimeToComplete,
             status: this._status,
             description: description,
             path: this._path,
