@@ -39,6 +39,19 @@ export class PriorityUtils {
                 return 4;
         }
     }
+    static fromNumber(priority: number): Priority {
+        switch (priority) {
+            case 1:
+                return Priority.High;
+            case 2:
+                return Priority.Medium;
+            case 3:
+                return Priority.None;
+            case 4:
+                return Priority.Low;
+        }
+        return Priority.None;
+    }
 }
 
 export const prioritySymbols = {

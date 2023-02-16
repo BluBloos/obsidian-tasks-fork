@@ -17,8 +17,33 @@ import { SettingsTab } from './Config/SettingsTab';
 import { StatusRegistry } from './StatusRegistry';
 import { EditorSuggestor } from './Suggestor/EditorSuggestorPopup';
 import { StatusSettings } from './Config/StatusSettings';
-import type { Task } from './Task';
+
+import { Recurrence } from './Recurrence';
+import { Task } from './Task';
 import { PriorityUtils } from './Task';
+import { TaskRegularExpressions } from './Task';
+
+import { DateFallback } from './DateFallback';
+import { Lazy } from './lib/Lazy';
+
+import { replaceTaskWithTasks } from './File';
+import { dataset_dev } from 'svelte/internal';
+
+export class TaskUID {
+    public readonly path: string; // file path
+    public readonly sectionIndex: number; // which index
+    public readonly taskIndex: number; // which task index in setion
+
+    constructor(path: string, sectionIndex: number, taskIndex: number) {
+        this.path = path;
+        this.sectionIndex = sectionIndex;
+        this.taskIndex = taskIndex;
+    }
+
+    public static fromTask(task: Task): TaskUID {
+        return new TaskUID(task.path, task.sectionStart, task.sectionIndex);
+    }
+}
 
 export class TaskExternal {
     public readonly isDone: Boolean;
@@ -33,6 +58,8 @@ export class TaskExternal {
     public readonly scheduledDate: Moment | null;
     public readonly dueDate: Moment | null;
     public readonly doneDate: Moment | null;
+
+    public readonly uid: TaskUID;
 
     public readonly recurrenceRrule: RRule | null; ///< RRule as per the lib.
     
@@ -56,6 +83,7 @@ export class TaskExternal {
         this.estimatedTimeToComplete = task.estimatedTimeToComplete;
         this.recurrenceRrule = task.recurrence ? task.recurrence.rrule : null;
         this.recurrenceReferenceDate = task.recurrence ? task.recurrence.referenceDate : null;
+        this.uid = TaskUID.fromTask(task);
     }
 }
 
@@ -116,6 +144,72 @@ export default class TasksPlugin extends Plugin {
         return this.cache?.getTasks();
     }
 
+    // HELPER NEEDED WHEN WRITING.
+    public taskFromTaskExternal(taskExternal: TaskExternal | null): Task | null {
+        if (!taskExternal) return null;
+
+        const line = taskExternal.originalMarkdown;
+        const regexMatch = line.match(TaskRegularExpressions.taskRegex);
+        if (regexMatch === null) {
+            return null;
+        }
+
+        const indentation = regexMatch[1];
+        const listMarker = regexMatch[2];
+        const body = regexMatch[4].trim();
+        const blockLinkMatch = body.match(TaskRegularExpressions.blockLinkRegex);
+        const blockLink = blockLinkMatch?.[0] ?? ''; // the real question is if there is an elvis operator.
+        
+        // Infer the scheduled date from the file name if not set explicitly
+        const fallbackDate = DateFallback.fromPath(taskExternal.uid.path);
+        let scheduledDate = taskExternal.scheduledDate;
+        let scheduledDateIsInferred = false;
+        if (DateFallback.canApplyFallback({
+            startDate: taskExternal.startDate,
+            scheduledDate: taskExternal.scheduledDate,
+            dueDate: taskExternal.dueDate,
+        }) && fallbackDate !== null) {
+            scheduledDate = fallbackDate;
+            scheduledDateIsInferred = true;
+        }
+
+        const recurrenceRule = body.match(TaskRegularExpressions.recurrenceRegex)?.[1]?.trim();
+        let recurrence = recurrenceRule ? Recurrence.fromText({
+            recurrenceRuleText: recurrenceRule,
+            startDate: taskExternal.startDate,
+            scheduledDate,
+            dueDate: taskExternal.dueDate,
+        }) : null;
+
+        return new Task({
+            estimatedTimeToComplete : taskExternal.estimatedTimeToComplete,
+            status :taskExternal.isDone ? Status.DONE : Status.TODO, // TODO:
+            description: taskExternal.description,
+            path: taskExternal.uid.path,
+            indentation,
+            listMarker,
+            sectionStart: taskExternal.uid.sectionIndex,
+            sectionIndex: taskExternal.uid.taskIndex,
+            precedingHeader: '', // TODO:
+            priority: PriorityUtils.fromNumber(taskExternal.priority),
+            startDate: taskExternal.startDate,
+            scheduledDate,
+            dueDate: taskExternal.dueDate,
+            doneDate: taskExternal.doneDate,
+            recurrence,
+            blockLink,
+            tags: taskExternal.tags,
+            originalMarkdown: line,
+            scheduledDateIsInferred,
+        });
+    }
+
+    // PUBLIC WRITE INTERFACE.
+    public async replaceTaskWithTasks(originalTask: Task, newTasks: Task[]) {
+        return replaceTaskWithTasks({originalTask, newTasks});
+    }
+
+    // PUBLIC READ INTERFACE.
     public async oneHotResolveQueryToTasks(query: string): TaskExternal[] | undefined {
         return new Promise((resolve, reject) => {
             this.app.workspace.trigger(
