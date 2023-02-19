@@ -29,6 +29,8 @@ import { Lazy } from './lib/Lazy';
 import { replaceTaskWithTasks } from './File';
 import { dataset_dev } from 'svelte/internal';
 
+import { TaskModal } from './TaskModal';
+
 export class TaskUID {
     public readonly path: string; // file path
     public readonly sectionIndex: number; // which index
@@ -145,6 +147,9 @@ export default class TasksPlugin extends Plugin {
     }
 
     // HELPER NEEDED WHEN WRITING.
+
+    // TODO: because we need to convert the TaskExternal to a Task, we kind of lose the benefit
+    // of the whole TaskExeternal concept...
     public taskFromTaskExternal(taskExternal: TaskExternal | null): Task | null {
         if (!taskExternal) return null;
 
@@ -207,6 +212,25 @@ export default class TasksPlugin extends Plugin {
     // PUBLIC WRITE INTERFACE.
     public async replaceTaskWithTasks(originalTask: Task, newTasks: Task[]) {
         return replaceTaskWithTasks({originalTask, newTasks});
+    }
+
+    // PUBLIC EDIT TASK INTERFACE.
+    public editTaskWithModal(task: Task) : Promise<void> {
+        return new Promise((resolve, reject) => {
+            const onSubmit = (updatedTasks: Task[]): void => {
+                replaceTaskWithTasks({
+                    originalTask: task,
+                    newTasks: DateFallback.removeInferredStatusIfNeeded(task, updatedTasks), // TODO: why?
+                });
+                resolve();
+            };
+            const taskModal = new TaskModal({
+                app: this.app,
+                task,
+                onSubmit,
+            });
+            taskModal.open();
+        });
     }
 
     // PUBLIC READ INTERFACE.
